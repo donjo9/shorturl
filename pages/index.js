@@ -1,6 +1,10 @@
 import Head from "next/head";
 import styled from "styled-components";
 import { useFormik } from "formik";
+import faunadb from "faunadb";
+const client = new faunadb.Client({ secret: process.env.FAUNADB_SECRET });
+
+const q = faunadb.query;
 
 const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
 
@@ -159,10 +163,14 @@ export default function Home({ sites }) {
 }
 
 export async function getStaticProps(context) {
-  const URL = `${baseUrl}/api`;
-  console.log(URL);
-  const res = await fetch(URL);
-  const sites = await res.json();
+ 
+  const queryRes = await client.query(
+    q.Map(
+      q.Paginate(q.Documents(q.Collection("urls"))),
+      q.Lambda("X", q.Get(q.Var("X")))
+    )
+  )
+  const sites = queryRes.data.map(s => s.data);  
 
   return {
     props: { sites }, // will be passed to the page component as props
