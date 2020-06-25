@@ -19,7 +19,7 @@ const Main = styled.main`
 
 const Form = styled.form`
   max-width: 500px;
-  width: 100%;
+  width: 80%;
   display: flex;
   flex-direction: column;
   label {
