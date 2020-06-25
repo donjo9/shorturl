@@ -1,7 +1,6 @@
 import faunadb from "faunadb";
 import React from "react";
 const client = new faunadb.Client({ secret: process.env.FAUNADB_SECRET });
-const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
 const q = faunadb.query;
 
 import { useRouter } from "next/router";
@@ -15,13 +14,12 @@ const Redirect = ({ ctx }) => {
 };
 
 Redirect.getInitialProps = async ({ res, query }) => {
-  // We check for ctx.res to make sure we're on the server.
   if (res) {
     console.dir(query);
     let url = {};
     try {
       url = await client.query(
-        q.Get(q.Match(q.Index("byShortId"), query.redirect))
+        q.Get(q.Match(q.Index("indexBySlug"), query.redirect))
       );
     } catch (error) {
       console.error(error);
@@ -30,7 +28,7 @@ Redirect.getInitialProps = async ({ res, query }) => {
     if (url.data) {
       res.writeHead(302, { Location: url.data.url });
     } else {
-      res.writeHead(302, { Location: `${baseUrl}/404` });
+      res.writeHead(302, { Location: `/404` });
     }
     res.end();
   }

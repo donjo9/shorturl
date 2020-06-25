@@ -1,12 +1,10 @@
 import Head from "next/head";
 import styled from "styled-components";
 import { useFormik } from "formik";
-import faunadb from "faunadb";
-const client = new faunadb.Client({ secret: process.env.FAUNADB_SECRET });
+import { useState } from "react";
+import { useRouter } from "next/router";
 
-const q = faunadb.query;
-
-const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
+const baseUrl = process.env.VERCEL_URL ? process.env.VERCEL_URL : process.env.NEXT_PUBLIC_DEV_URL;
 
 const urlValidator = /^http(s)?:\/\/(www\.)?[a-z0-9]+([\-\.]{1}[a-z0-9]+)*\.[a-z]{2,5}(:[0-9]{1,5})?(\/.*)?$/;
 
@@ -63,17 +61,18 @@ const ErrorField = styled.div`
   display: inline-block;
 `;
 
-export default function Home({ sites }) {
+const Home = () => {
+  const [newSlug, setNewSlug] = useState("");
+  const [saveError, setSaveError] = useState("");
+  const router = useRouter();
+  //console.log("Path: ", baseUrl);
   const formik = useFormik({
     initialValues: {
       url: "",
-      name: "",
+      slug: "",
     },
     validate: (values) => {
       const errors = {};
-      if (!values.name) {
-        errors.name = "Name is required";
-      }
       if (!values.url) {
         errors.url = "Url is required";
       } else if (!urlValidator.test(values.url)) {
@@ -83,7 +82,8 @@ export default function Home({ sites }) {
     },
     onSubmit: async (vales) => {
       console.dir(vales);
-      const response = await fetch(`${baseUrl}/api/save`, {
+      setNewSlug("");
+      const response = await fetch(`/api/save`, {
         method: "POST",
         mode: "cors",
         cache: "no-cache",
@@ -95,18 +95,16 @@ export default function Home({ sites }) {
         referrerPolicy: "no-referrer",
         body: JSON.stringify(vales),
       });
+      const resJson = await response.json();
+      console.log(resJson);
+      if (resJson.error) {
+        setSaveError(resJson.error);
+      } else {
+        setNewSlug(resJson.slug);
+      }
     },
   });
-  console.log(baseUrl);
-  const sitesList = sites.map((site) => {
-    return (
-      <tr key={site.shortid}>
-        <TableData>{site.name}</TableData>
-        <TableData>{site.url}</TableData>
-        <TableData><a href={`${baseUrl}/${site.shortid}`}>{`${baseUrl}${site.shortid}`}</a></TableData>
-      </tr>
-    );
-  });
+
   return (
     <>
       <Head>
@@ -117,27 +115,12 @@ export default function Home({ sites }) {
       <Main>
         <h1>Add new site</h1>
         <Form onSubmit={formik.handleSubmit}>
-          <label htmlFor="name">
-            Site Name
-            {formik.errors.name && formik.touched.name ? (
-              <ErrorField>{formik.errors.name}</ErrorField>
-            ) : null}
-          </label>
-
-          <input
-            id="name"
-            name="name"
-            type="text"
-            onChange={formik.handleChange}
-            value={formik.values.name}
-          />
           <label htmlFor="Url">
             Site URL{" "}
             {formik.errors.url && formik.touched.url ? (
               <ErrorField>{formik.errors.url}</ErrorField>
             ) : null}
           </label>
-
           <input
             id="url"
             name="url"
@@ -145,34 +128,26 @@ export default function Home({ sites }) {
             onChange={formik.handleChange}
             value={formik.values.url}
           />
+          <label htmlFor="name">Optional slug</label>
+          <input
+            id="slug"
+            name="slug"
+            type="text"
+            onChange={formik.handleChange}
+            value={formik.values.slug}
+          />
           <Button type="submit">Submit</Button>
         </Form>
-        <Table>
-          <thead>
-            <tr>
-              <TableHeader>Navn</TableHeader>
-              <TableHeader>Url</TableHeader>
-              <TableHeader>Short Url</TableHeader>
-            </tr>
-          </thead>
-          <tbody>{sitesList}</tbody>
-        </Table>
+
+        {newSlug ? (
+          <div>
+            {baseUrl}/{newSlug}
+          </div>
+        ) : null}
+        {saveError ? <div>{saveError}</div> : null}
       </Main>
     </>
   );
-}
+};
 
-export async function getStaticProps(context) {
- 
-  const queryRes = await client.query(
-    q.Map(
-      q.Paginate(q.Documents(q.Collection("urls"))),
-      q.Lambda("X", q.Get(q.Var("X")))
-    )
-  )
-  const sites = queryRes.data.map(s => s.data);  
-
-  return {
-    props: { sites }, // will be passed to the page component as props
-  };
-}
+export default Home;

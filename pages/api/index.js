@@ -7,14 +7,18 @@ export default async (req, res) => {
   const {
     query: { pid },
   } = req;
-
-  const queryRes = await client.query(
-    q.Map(
-      q.Paginate(q.Documents(q.Collection("urls"))),
-      q.Lambda("X", q.Get(q.Var("X")))
-    )
-  )
-  const sites = queryRes.data.map(s => s.data);      
+  try {
+    const queryRes = await client.query(
+      q.Map(
+        q.Paginate(q.Documents(q.Collection("urls"))),
+        q.Lambda("X", q.Get(q.Var("X")))
+      )
+    );
+  } catch (error) {
+    res.end(error.message);
+    return;
+  }
+  const sites = queryRes.data.map((s) => s.data);
   console.dir(sites);
 
   res.end(JSON.stringify(sites));
