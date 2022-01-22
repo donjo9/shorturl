@@ -10,7 +10,7 @@
   "dependencies": {
     "faunadb": "^2.14.2",
     "formik": "^2.1.4",
-    "nanoid": "^3.1.10",
+    "nanoid": "^3.1.31",
     "next": "9.4.4",
     "react": "16.13.1",
     "react-dom": "16.13.1",
